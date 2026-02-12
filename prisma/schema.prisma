@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// User model - stores SecondMe OAuth tokens and basic info
+model User {
+  id                String   @id @default(cuid())
+  secondmeUserId    String   @unique @map("secondme_user_id")
+  accessToken       String   @map("access_token")
+  refreshToken      String   @map("refresh_token")
+  tokenExpiresAt    DateTime @map("token_expires_at")
+
+  // Profile info
+  nickname          String?
+  avatar            String?
+
+  // Relations
+  chatSessions      ChatSession[]
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// Chat session model - stores conversation history
+model ChatSession {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  sessionId   String   @unique @map("session_id")
+  title       String?
+  lastMessage String?  @map("last_message")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    ChatMessage[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("chat_sessions")
+}
+
+// Chat message model - stores individual messages
+model ChatMessage {
+  id          String   @id @default(cuid())
+  sessionId   String   @map("session_id")
+  role        String   // "user" or "assistant"
+  content     String
+
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("chat_messages")
+}
+
+// Match compatibility model - stores compatibility scores
+model MatchCompatibility {
+  id             String   @id @default(cuid())
+  user1Id        String   @map("user1_id")
+  user2Id        String   @map("user2_id")
+  score          Float
+  reasoning      String?
+
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([user1Id, user2Id])
+  @@map("match_compatibility")
+}
